@@ -85,6 +85,21 @@ class PerformancePlotter:
                 name=f"{row.name} Range", legendgroup=row.name, showlegend=False
             ))
 
+            # Add Label inside the ellipse
+            cx = (row.pmin + row.pmax) / 2
+            cy = np.sqrt(row.fmin * row.fmax) if self.is_log_y else (row.fmin + row.fmax) / 2
+
+            self.fig.add_trace(go.Scatter(
+                x=[cx], y=[cy],
+                mode='text',
+                text=[row.name],
+                textposition="middle center",
+                textfont=dict(color="black", size=10),
+                showlegend=False,
+                legendgroup=row.name,
+                hoverinfo='skip'
+            ))
+
     def finalize(self, title: str):
         """Styles the layout and returns the figure."""
         self.fig.update_xaxes(title="Power Consumption (Watts)", gridcolor='lightgrey')

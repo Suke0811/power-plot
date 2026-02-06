@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from power_plot import PerformancePlotter
+from .power_plot import PerformancePlotter
 import io
 import zipfile
 import re
