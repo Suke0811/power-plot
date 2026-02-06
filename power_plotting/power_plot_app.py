@@ -21,7 +21,7 @@ def main():
     y_unit = st.sidebar.text_input("Y-axis Unit", value="TOPS")
 
     # 3) Axis Scale
-    is_log_y = st.sidebar.toggle("Use Logarithmic Scale for Y-axis", value=False)
+    is_log_y = st.sidebar.toggle("Use Logarithmic Scale for Y-axis", value=True)
 
     # Main Content
     required_cols = ["name", "pmin", "pmax", "fmin", "fmax"]

@@ -40,11 +40,15 @@ class PerformancePlotter:
         angle = np.arctan2(dy_norm, dx)
 
         if dist == 0:
-            return np.array([cx]), np.array([y1])
+            return np.array([cx]), np.array([10**y1 if self.is_log_y else y1])
 
         a = dist / 2
-        # Define width 'b' relative to 'a' or using a constant factor
-        b = a * 0.2
+        if self.is_log_y:
+            # Revert to original b calculation for log scale (half perpendicular distance)
+            b = (dx * dy_norm) / (2 * dist)
+        else:
+            # Use constant factor for linear scale to ensure visibility
+            b = a * 0.2
 
         # 4. Generate and Rotate Points
         t = np.linspace(0, 2 * np.pi, 100)
@@ -99,8 +103,8 @@ if __name__ == "__main__":
         {'name': 'Jetson AGX Orin 64GB', 'pmin': 15, 'pmax': 60, 'fmin': 50, 'fmax': 275},
     ])
 
-    # 2. Initialize Plotter (set is_log_y=False for linear scale)
-    plotter = PerformancePlotter(is_log_y=False)
+    # 2. Initialize Plotter (set is_log_y=True for log scale)
+    plotter = PerformancePlotter(is_log_y=True)
     
     # 3. Add data and finalize
     plotter.add_data(data_df)
