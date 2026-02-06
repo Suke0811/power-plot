@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from power_plot import PerformancePlotter
+import io
+import zipfile
 
 
 def main():
@@ -19,7 +21,7 @@ def main():
     y_unit = st.sidebar.text_input("Y-axis Unit", value="TOPS")
 
     # 3) Axis Scale
-    is_log_y = st.sidebar.toggle("Use Logarithmic Scale for Y-axis", value=True)
+    is_log_y = st.sidebar.toggle("Use Logarithmic Scale for Y-axis", value=False)
 
     # Main Content
     required_cols = ["name", "pmin", "pmax", "fmin", "fmax"]
@@ -45,22 +47,13 @@ def main():
         num_rows="dynamic", 
         use_container_width=True,
         column_config={
-            "pmin": st.column_config.NumberColumn(format="%.2f"),
-            "pmax": st.column_config.NumberColumn(format="%.2f"),
-            "fmin": st.column_config.NumberColumn(format="%.2f"),
-            "fmax": st.column_config.NumberColumn(format="%.2f"),
+            "name": st.column_config.TextColumn("Hardware Name", help="Name of the device or accelerator"),
+            "pmin": st.column_config.NumberColumn("Power Min (W)", format="%.2f", help="Minimum power consumption in Watts"),
+            "pmax": st.column_config.NumberColumn("Power Max (W)", format="%.2f", help="Maximum power consumption in Watts"),
+            "fmin": st.column_config.NumberColumn("Perf Min", format="%.2f", help="Minimum performance (e.g. TOPS)"),
+            "fmax": st.column_config.NumberColumn("Perf Max", format="%.2f", help="Maximum performance (e.g. TOPS)"),
         }
     )
-
-    # 3) Download button for CSV
-    if not edited_df.empty:
-        csv = edited_df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="Download Edited CSV",
-            data=csv,
-            file_name="edited_data.csv",
-            mime="text/csv",
-        )
 
     # 4) Build and render plot
     if not edited_df.empty and set(required_cols).issubset(edited_df.columns):
@@ -75,14 +68,60 @@ def main():
 
             st.plotly_chart(fig, use_container_width=True)
 
-            # Download button for the plot (HTML format)
+            # --- Download options ---
+            st.subheader("Download Options")
+            col1, col2, col3, col4 = st.columns(4)
+
+            # 1. Download HTML
             html_bytes = fig.to_html(include_plotlyjs='cdn').encode()
-            st.download_button(
-                label="Download Plot as HTML",
-                data=html_bytes,
-                file_name="performance_plot.html",
-                mime="text/html",
-            )
+            with col1:
+                st.download_button(
+                    label="Download HTML",
+                    data=html_bytes,
+                    file_name="performance_plot.html",
+                    mime="text/html",
+                )
+
+            # 2. Download PNG
+            try:
+                png_bytes = fig.to_image(format="png")
+                with col2:
+                    st.download_button(
+                        label="Download PNG",
+                        data=png_bytes,
+                        file_name="performance_plot.png",
+                        mime="image/png",
+                    )
+            except Exception as e:
+                with col2:
+                    st.error(f"Error generating PNG: {e}")
+                png_bytes = None
+
+            # 3. Download CSV (from the editor)
+            csv_bytes = edited_df.to_csv(index=False).encode('utf-8')
+            with col3:
+                st.download_button(
+                    label="Download CSV",
+                    data=csv_bytes,
+                    file_name="edited_data.csv",
+                    mime="text/csv",
+                )
+
+            # 4. Download All (ZIP)
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w") as zf:
+                zf.writestr("performance_plot.html", html_bytes)
+                if png_bytes:
+                    zf.writestr("performance_plot.png", png_bytes)
+                zf.writestr("edited_data.csv", csv_bytes)
+            
+            with col4:
+                st.download_button(
+                    label="Download All (ZIP)",
+                    data=zip_buffer.getvalue(),
+                    file_name="performance_assets.zip",
+                    mime="application/zip",
+                )
 
         except Exception as e:
             st.error(f"Error generating plot: {e}")

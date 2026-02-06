@@ -13,33 +13,49 @@ class PerformancePlotter:
         # Use a monotonic/sequential scale (e.g., 'Blues_r' for a professional look)
         self.colors = px.colors.sequential.Cividis
 
-    def _get_envelope_coords(self, pmin, pmax, fmin, fmax) -> Tuple[np.ndarray, np.ndarray]:
-        """Calculates tilted ellipsoid coordinates in the specified coordinate space."""
-        # 1. Coordinate Space Transformation
+    def _get_envelope_coords(self, pmin, pmax, fmin, fmax, df_context=None) -> Tuple[np.ndarray, np.ndarray]:
+        """Calculates tilted ellipsoid coordinates using normalized space to maintain alignment."""
+        # 1. Coordinate Space Transformation (Log handling)
         x1, x2 = pmin, pmax
         y1, y2 = (np.log10(fmin), np.log10(fmax)) if self.is_log_y else (fmin, fmax)
 
-        # 2. Geometry Calculation
-        cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
-        dx, dy = x2 - x1, y2 - y1
-        dist = np.sqrt(dx**2 + dy**2)
-        angle = np.arctan2(dy, dx)
-        
+        # 2. Normalization (Advanced Aspect Ratio Handling)
+        # If we have the full data range, we can normalize to a 0-1 square
+        # This prevents the 'stretching' effect on the rotation angle
+        if df_context is not None and not self.is_log_y:
+            x_range = df_context['pmax'].max() - df_context['pmin'].min()
+            y_range = df_context['fmax'].max() - df_context['fmin'].min()
+
+            # Scale factor to equalize visual units
+            scale_y = x_range / y_range if y_range != 0 else 1.0
+            y1_norm, y2_norm = y1 * scale_y, y2 * scale_y
+        else:
+            scale_y = 1.0
+            y1_norm, y2_norm = y1, y2
+
+        # 3. Geometry Calculation in (Normalized) Space
+        cx, cy_norm = (x1 + x2) / 2, (y1_norm + y2_norm) / 2
+        dx, dy_norm = x2 - x1, y2_norm - y1_norm
+        dist = np.sqrt(dx**2 + dy_norm**2)
+        angle = np.arctan2(dy_norm, dx)
+
         if dist == 0:
-            return np.array([cx]), np.array([cy])
+            return np.array([cx]), np.array([y1])
 
         a = dist / 2
-        # b is half the perpendicular distance from rectangle corners to major axis
-        b = (dx * dy) / (2 * dist)
+        # Define width 'b' relative to 'a' or using a constant factor
+        b = a * 0.2
 
-        # 3. Generate and Rotate Points
+        # 4. Generate and Rotate Points
         t = np.linspace(0, 2 * np.pi, 100)
         xs, ys = a * np.cos(t), b * np.sin(t)
-        
-        x_rot = cx + (xs * np.cos(angle) - ys * np.sin(angle))
-        y_rot = cy + (xs * np.sin(angle) + ys * np.cos(angle))
 
-        return x_rot, (10 ** y_rot if self.is_log_y else y_rot)
+        x_rot = cx + (xs * np.cos(angle) - ys * np.sin(angle))
+        y_rot_norm = cy_norm + (xs * np.sin(angle) + ys * np.cos(angle))
+
+        # 5. Reverse Normalization and Log Transform
+        y_final = y_rot_norm / scale_y
+        return x_rot, (10 ** y_final if self.is_log_y else y_final)
 
     def add_data(self, df: pd.DataFrame):
         """Iterates through the DataFrame and adds traces to the figure."""
@@ -48,8 +64,8 @@ class PerformancePlotter:
             # Select color from the monotonic scale
             color_idx = int((i / max(1, n_items - 1)) * (len(self.colors) - 1))
             color = self.colors[color_idx]
-            
-            x_env, y_env = self._get_envelope_coords(row.pmin, row.pmax, row.fmin, row.fmax)
+
+            x_env, y_env = self._get_envelope_coords(row.pmin, row.pmax, row.fmin, row.fmax, df_context=df)
 
             # Add Envelope with the monotonic color
             self.fig.add_trace(go.Scatter(
@@ -84,7 +100,7 @@ if __name__ == "__main__":
     ])
 
     # 2. Initialize Plotter (set is_log_y=False for linear scale)
-    plotter = PerformancePlotter(is_log_y=True)
+    plotter = PerformancePlotter(is_log_y=False)
     
     # 3. Add data and finalize
     plotter.add_data(data_df)
