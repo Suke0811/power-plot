@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from .power_plot import PerformancePlotter
+from power_plot import PerformancePlotter
 import io
 import zipfile
 import re
@@ -54,7 +54,7 @@ def main():
     edited_df = st.data_editor(
         df_input, 
         num_rows="dynamic", 
-        use_container_width=True,
+        width="stretch",
         column_config={
             "name": st.column_config.TextColumn("Hardware Name", help="Name of the device or accelerator"),
             "pmin": st.column_config.NumberColumn("Power Min (W)", format="%.2f", help="Minimum power consumption in Watts"),
@@ -75,7 +75,7 @@ def main():
             fig.update_xaxes(title="Power (W)")
             fig.update_yaxes(title=f"{y_label} ({y_unit})")
 
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
             # --- Download options ---
             st.subheader("Download Options")
