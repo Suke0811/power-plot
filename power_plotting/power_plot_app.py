@@ -3,6 +3,15 @@ import pandas as pd
 from power_plot import PerformancePlotter
 import io
 import zipfile
+import re
+
+
+def sanitize_filename(name, default="plot"):
+    # Replace spaces with underscores
+    name = name.replace(" ", "_")
+    # Remove any non-alphanumeric, underscores or hyphens
+    name = re.sub(r'[^\w\-]', '', name)
+    return name if name else default
 
 
 def main():
@@ -72,13 +81,15 @@ def main():
             st.subheader("Download Options")
             col1, col2, col3, col4 = st.columns(4)
 
+            base_name = sanitize_filename(plot_title, default="performance_plot")
+
             # 1. Download HTML
             html_bytes = fig.to_html(include_plotlyjs='cdn').encode()
             with col1:
                 st.download_button(
                     label="Download HTML",
                     data=html_bytes,
-                    file_name="performance_plot.html",
+                    file_name=f"{base_name}.html",
                     mime="text/html",
                 )
 
@@ -89,7 +100,7 @@ def main():
                     st.download_button(
                         label="Download PNG",
                         data=png_bytes,
-                        file_name="performance_plot.png",
+                        file_name=f"{base_name}.png",
                         mime="image/png",
                     )
             except Exception as e:
@@ -103,23 +114,23 @@ def main():
                 st.download_button(
                     label="Download CSV",
                     data=csv_bytes,
-                    file_name="edited_data.csv",
+                    file_name=f"{base_name}_data.csv",
                     mime="text/csv",
                 )
 
             # 4. Download All (ZIP)
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w") as zf:
-                zf.writestr("performance_plot.html", html_bytes)
+                zf.writestr(f"{base_name}.html", html_bytes)
                 if png_bytes:
-                    zf.writestr("performance_plot.png", png_bytes)
-                zf.writestr("edited_data.csv", csv_bytes)
+                    zf.writestr(f"{base_name}.png", png_bytes)
+                zf.writestr(f"{base_name}_data.csv", csv_bytes)
             
             with col4:
                 st.download_button(
                     label="Download All (ZIP)",
                     data=zip_buffer.getvalue(),
-                    file_name="performance_assets.zip",
+                    file_name=f"{base_name}_assets.zip",
                     mime="application/zip",
                 )
 
