@@ -30,7 +30,7 @@ def main():
     y_unit = st.sidebar.text_input("Y-axis Unit", value="TOPS")
 
     # 3) Axis Scale
-    is_log_y = st.sidebar.toggle("Use Logarithmic Scale for Y-axis", value=True)
+    is_log_y = st.sidebar.toggle("Use Logarithmic Scale for Y-axis", value=False)
 
     # Main Content
     required_cols = ["name", "pmin", "pmax", "fmin", "fmax"]
@@ -56,7 +56,7 @@ def main():
         num_rows="dynamic", 
         width="stretch",
         column_config={
-            "name": st.column_config.TextColumn("Hardware Name", help="Name of the device or accelerator"),
+            "name": st.column_config.TextColumn("Name", help="Name of the device or accelerator"),
             "pmin": st.column_config.NumberColumn("Power Min (W)", format="%.2f", help="Minimum power consumption in Watts"),
             "pmax": st.column_config.NumberColumn("Power Max (W)", format="%.2f", help="Maximum power consumption in Watts"),
             "fmin": st.column_config.NumberColumn("Perf Min", format="%.2f", help="Minimum performance (e.g. TOPS)"),
@@ -73,7 +73,10 @@ def main():
 
             # Override axis labels
             fig.update_xaxes(title="Power (W)")
-            fig.update_yaxes(title=f"{y_label} ({y_unit})")
+            y_axis_title = f"{y_label} ({y_unit})"
+            if is_log_y:
+                y_axis_title += " (log scale)"
+            fig.update_yaxes(title=y_axis_title)
 
             st.plotly_chart(fig, width="stretch")
 

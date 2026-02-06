@@ -103,8 +103,11 @@ class PerformancePlotter:
     def finalize(self, title: str):
         """Styles the layout and returns the figure."""
         self.fig.update_xaxes(title="Power Consumption (Watts)", gridcolor='lightgrey')
+        y_title = "AI Performance (TOPS)"
+        if self.is_log_y:
+            y_title += " (log scale)"
         self.fig.update_yaxes(type="log" if self.is_log_y else "linear", 
-                              title="AI Performance (TOPS)", gridcolor='lightgrey')
+                              title=y_title, gridcolor='lightgrey')
         self.fig.update_layout(title=title, template="plotly_white", height=600)
         return self.fig
 
