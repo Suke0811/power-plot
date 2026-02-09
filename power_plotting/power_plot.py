@@ -13,18 +13,18 @@ class PerformancePlotter:
         # Use a monotonic/sequential scale (e.g., 'Blues_r' for a professional look)
         self.colors = px.colors.sequential.Cividis
 
-    def _get_envelope_coords(self, pmin, pmax, fmin, fmax, df_context=None) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_envelope_coords(self, pwr_min, pwr_max, perf_min, perf_max, df_context=None) -> Tuple[np.ndarray, np.ndarray]:
         """Calculates tilted ellipsoid coordinates using normalized space to maintain alignment."""
         # 1. Coordinate Space Transformation (Log handling)
-        x1, x2 = pmin, pmax
-        y1, y2 = (np.log10(fmin), np.log10(fmax)) if self.is_log_y else (fmin, fmax)
+        x1, x2 = pwr_min, pwr_max
+        y1, y2 = (np.log10(perf_min), np.log10(perf_max)) if self.is_log_y else (perf_min, perf_max)
 
         # 2. Normalization (Advanced Aspect Ratio Handling)
         # If we have the full data range, we can normalize to a 0-1 square
         # This prevents the 'stretching' effect on the rotation angle
         if df_context is not None and not self.is_log_y:
-            x_range = df_context['pmax'].max() - df_context['pmin'].min()
-            y_range = df_context['fmax'].max() - df_context['fmin'].min()
+            x_range = df_context['pwr_max'].max() - df_context['pwr_min'].min()
+            y_range = df_context['perf_max'].max() - df_context['perf_min'].min()
 
             # Scale factor to equalize visual units
             scale_y = x_range / y_range if y_range != 0 else 1.0
@@ -69,7 +69,7 @@ class PerformancePlotter:
             color_idx = int((i / max(1, n_items - 1)) * (len(self.colors) - 1))
             color = self.colors[color_idx]
 
-            x_env, y_env = self._get_envelope_coords(row.pmin, row.pmax, row.fmin, row.fmax, df_context=df)
+            x_env, y_env = self._get_envelope_coords(row.pwr_min, row.pwr_max, row.perf_min, row.perf_max, df_context=df)
 
             # Add Envelope with the monotonic color
             self.fig.add_trace(go.Scatter(
@@ -80,14 +80,14 @@ class PerformancePlotter:
 
             # Add Markers
             self.fig.add_trace(go.Scatter(
-                x=[row.pmin, row.pmax], y=[row.fmin, row.fmax],
+                x=[row.pwr_min, row.pwr_max], y=[row.perf_min, row.perf_max],
                 mode='markers', marker=dict(color=color, size=8, symbol='circle'),
                 name=f"{row.name} Range", legendgroup=row.name, showlegend=False
             ))
 
             # Add Label inside the ellipse
-            cx = (row.pmin + row.pmax) / 2
-            cy = np.sqrt(row.fmin * row.fmax) if self.is_log_y else (row.fmin + row.fmax) / 2
+            cx = (row.pwr_min + row.pwr_max) / 2
+            cy = np.sqrt(row.perf_min * row.perf_max) if self.is_log_y else (row.perf_min + row.perf_max) / 2
 
             self.fig.add_trace(go.Scatter(
                 x=[cx], y=[cy],
@@ -115,10 +115,10 @@ if __name__ == "__main__":
     # 1. Load your table (e.g., from Excel: df = pd.read_excel("data.xlsx"))
     # Creating a sample DataFrame for demonstration:
     data_df = pd.DataFrame([
-        {'name': 'Jetson Nano', 'pmin': 5, 'pmax': 10, 'fmin': 0.2, 'fmax': 0.5},
-        {'name': 'Jetson TX2', 'pmin': 7.5, 'pmax': 15, 'fmin': 0.6, 'fmax': 1.3},
-        {'name': 'Jetson Xavier NX', 'pmin': 10, 'pmax': 20, 'fmin': 14, 'fmax': 21},
-        {'name': 'Jetson AGX Orin 64GB', 'pmin': 15, 'pmax': 60, 'fmin': 50, 'fmax': 275},
+        {'name': 'Jetson Nano', 'pwr_min': 5, 'pwr_max': 10, 'perf_min': 0.2, 'perf_max': 0.5},
+        {'name': 'Jetson TX2', 'pwr_min': 7.5, 'pwr_max': 15, 'perf_min': 0.6, 'perf_max': 1.3},
+        {'name': 'Jetson Xavier NX', 'pwr_min': 10, 'pwr_max': 20, 'perf_min': 14, 'perf_max': 21},
+        {'name': 'Jetson AGX Orin 64GB', 'pwr_min': 15, 'pwr_max': 60, 'perf_min': 50, 'perf_max': 275},
     ])
 
     # 2. Initialize Plotter (set is_log_y=True for log scale)

@@ -33,7 +33,7 @@ def main():
     is_log_y = st.sidebar.toggle("Use Logarithmic Scale for Y-axis", value=False)
 
     # Main Content
-    required_cols = ["name", "pmin", "pmax", "fmin", "fmax"]
+    required_cols = ["name", "pwr_min", "pwr_max", "perf_min", "perf_max"]
     
     # 1) Load data
     if uploaded_file is not None:
@@ -42,12 +42,33 @@ def main():
                 df_input = pd.read_csv(uploaded_file)
             else:
                 df_input = pd.read_excel(uploaded_file)
+            
+            # Ensure required columns exist and have correct types
+            for col in required_cols:
+                if col not in df_input.columns:
+                    df_input[col] = None
+            
+            df_input = df_input.astype({
+                "name": str,
+                "pwr_min": float,
+                "pwr_max": float,
+                "perf_min": float,
+                "perf_max": float
+            })
         except Exception as e:
             st.error(f"Error processing file: {e}")
             return
     else:
         # Provide an empty template if no file is uploaded
         df_input = pd.DataFrame(columns=required_cols)
+        # Ensure correct types to avoid StreamlitAPIException in data_editor
+        df_input = df_input.astype({
+            "name": str,
+            "pwr_min": float,
+            "pwr_max": float,
+            "perf_min": float,
+            "perf_max": float
+        })
 
     # 2) Display editable table
     st.subheader("Edit Data")
@@ -57,10 +78,10 @@ def main():
         width="stretch",
         column_config={
             "name": st.column_config.TextColumn("Name", help="Name of the device or accelerator"),
-            "pmin": st.column_config.NumberColumn("Power Min (W)", format="%.2f", help="Minimum power consumption in Watts"),
-            "pmax": st.column_config.NumberColumn("Power Max (W)", format="%.2f", help="Maximum power consumption in Watts"),
-            "fmin": st.column_config.NumberColumn("Perf Min", format="%.2f", help="Minimum performance (e.g. TOPS)"),
-            "fmax": st.column_config.NumberColumn("Perf Max", format="%.2f", help="Maximum performance (e.g. TOPS)"),
+            "pwr_min": st.column_config.NumberColumn("Power Min (W)", format="%.2f", help="Minimum power consumption in Watts"),
+            "pwr_max": st.column_config.NumberColumn("Power Max (W)", format="%.2f", help="Maximum power consumption in Watts"),
+            "perf_min": st.column_config.NumberColumn("Perf Min", format="%.2f", help="Minimum performance (e.g. TOPS)"),
+            "perf_max": st.column_config.NumberColumn("Perf Max", format="%.2f", help="Maximum performance (e.g. TOPS)"),
         }
     )
 
